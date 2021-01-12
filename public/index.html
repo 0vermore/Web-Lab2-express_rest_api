@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Библиотека</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+</head>
+<body style="padding: 2em;">
+    <h2>Библиотека</h2>
+    <form name="bookForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group">
+            <label for="name">Название:</label>
+            <input class="form-control" name="name" />
+        </div>
+        <div class="form-group">
+            <label for="author">Автор:</label>
+            <input class="form-control" name="author" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+            <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped table-bordered">
+        <thead><tr><th>Id</th><th>Название</th><th>Автор</th><th></th></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+  
+    <script>
+        function GetBooks() {
+            $.ajax({
+                url: "books",
+                type: "GET",
+                contentType: "application/json",
+                success: function (books) {
+                    var rows = "";
+                    $.each(books, function (index, book) {
+                        rows += row(book);
+                    })
+                    $("table tbody").append(rows);
+                 }
+            });
+        }
+
+        function GetBook(id) {
+            $.ajax({
+                url: "books/"+id,
+                type: "GET",
+                contentType: "application/json",
+                success: function (book) {
+                    var form = document.forms["bookForm"];
+                    form.elements["id"].value = book.id;
+                    form.elements["name"].value = book.name;
+                    form.elements["author"].value = book.author;
+                }
+            });
+        }
+
+        function CreateBook(bookName, bookAuthor) {
+            $.ajax({
+                url: "books",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    name: bookName,
+                    author: bookAuthor
+                }),
+                success: function (book) {
+                    reset();
+                    $("table tbody").append(row(book));
+                }
+            })
+        }
+
+        function EditBook(bookId, bookName, bookAuthor) {
+            $.ajax({
+                url: "books",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+                    id: bookId,
+                    name: bookName,
+                    author: bookAuthor
+                }),
+                success: function (book) {
+                    reset();
+                    $("tr[data-rowid='" + book.id + "']").replaceWith(row(book));
+                }
+            })
+        }
+  
+        function reset() {
+            var form = document.forms["bookForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+  
+        function DeleteBook(id) {
+            $.ajax({
+                url: "books/"+id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (book) {
+                    console.log(book);
+                    $("tr[data-rowid='" + book.id + "']").remove();
+                }
+            })
+        }
+
+        var row = function (book) {
+            return "<tr data-rowid='" + book.id + "'><td>" + book.id + "</td>" +
+                   "<td>" + book.name + "</td> <td>" + book.author + "</td>" +
+                   "<td><a class='editLink' data-id='" + book.id + "'>Изменить</a> | " +
+                    "<a class='removeLink' data-id='" + book.id + "'>Удалить</a></td></tr>";
+        }
+
+        $("#reset").click(function (e) {
+  
+            e.preventDefault();
+            reset();
+        })
+  
+        $("form").submit(function (e) {
+            e.preventDefault();
+            var id = this.elements["id"].value;
+            var name = this.elements["name"].value;
+            var author = this.elements["author"].value;
+            if (id == 0)
+                CreateBook(name, author);
+            else
+                EditBook(id, name, author);
+        });
+  
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            GetBook(id);
+        })
+
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            DeleteBook(id);
+        })
+  
+        GetBooks();
+  
+    </script>
+</body>
+</html>
